@@ -32,7 +32,7 @@ h2. Important Notes
 * If you want to import into different projects, *export one XML file per project* (see @--pagelist@ option of MediaWiki's __dumpBackup.php__).
 * This script is known to work with XML exports from *MediaWiki version 1.18.1*.
 * The script will *fail intentionally if pages to be pushed already exist* in the Redmine wiki.
-** Hint: The following **curl** command poses a *quick way to delete pages*: @curl -i -X DELETE --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
+** *Hint:* The following **curl** command poses a *quick way to delete pages*: @curl -i -X DELETE --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
 * You may also use **curl** to get *more meaningful responses*. Example:
 ** @curl -i -H 'X-Redmine-Switch-User: importer' -X PUT -d content[text]="sometext" -d content[comments]="somecomment" --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
 * In case you want to *purge all (!)* existing wiki pages, use the following Ruby statement.
@@ -60,23 +60,28 @@ h3. In MediaWiki: Export XML file
 ** *Suggestion:* @su -m www -c "php ./maintenance/dumpBackup.php --full --pagelist=./pagelist --include-files > PATH_FOR/mediawiki-pages.xml"@
 
 
-h3. In Redmine: Prepare wiki and users
-
-# Set *upload size* higher than the size of the biggest file that you intend to upload.
-# *Rename any pages* that would clash with those to be imported.
-# Ensure that all contributors of the MediaWiki instance *exist as users* in Redmine.
-# *Authorize the users* to edit the wiki of the project in question.
-** *Hint:* Run the according method of this script to list all contributors mentioned in the XML file (@./list_contributors.rb PATH_TO/mediawiki.xml@)
-
-
 h3. In XML file: Clean up and remap users
 
 # *Search and replace any contributor names* that you want to remap to certain other Redmine users.
 ** *VI-Example:* @:%s/<username>\cWikiSysop<\/username>/<username>admin<\/username>/@
-** *Hint:* Run the aforementioned script to verify only wanted contributors remain present (@./list_contributors.rb PATH_TO/mediawiki.xml@)
+** *Hint:* List all contributors of the XML file via @./list_contributors.rb PATH_TO/mediawiki-pages.xml@ to verify only wanted contributors remain present.
 # Optionally remove any unwanted contributions entirely.
 
 Note that some auto-generated revisions in MediaWiki, like the "Main Page", might be missing a contributor. The script is hard-coded to handle such cases by automatically assigning them to *"admin"*.
+
+
+h3. In Redmine: Prepare wiki and users
+
+# Set *upload size* higher than the size of the biggest file that you intend to upload.
+** See option __Maximum attachment size__ in in *Administration > Settings* (e.g. https://example.plan.io/settings).
+# *Rename any pages* that would clash with those to be imported.
+# Ensure that all contributors of the MediaWiki instance *exist as users* in Redmine.
+** See *Administration > Users* (e.g. https://example.plan.io/users)
+# Create a *role* with the __"Edit wiki pages"__ and __"View wiki"__ permissions.
+** See *Administration > Roles and permissions > New role* (e.g. https://example.plan.io/roles/new)
+# *Authorize the users* to edit the wiki of the project in question using the recently created role.
+** See *Settings > Members* within the project in question.
+** *Hint:* List all contributors of the XML file via @./list_contributors.rb PATH_TO/mediawiki-pages.xml@.
 
 
 h3. Script: push_contents.rb
@@ -97,7 +102,7 @@ Use this script to upload all files to Redmine.
 
 Note that each image's *directory name* determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
 
-h4. Exampe directory hierarchy
+h4. Example directory hierarchy
 
 pre. images
 ├── one
@@ -122,7 +127,14 @@ pre. SCRIPT_NAME        IMAGE_DIRECTORY             REDMINE_URL               PR
 _*Important:* Ensure to provide an API key with sufficient privileges._
 
 
-  
+h3. In Redmine: Verify imported contents
+
+At least the *current state of each wiki page* should be manually verified to be correct.
+
+In addition, it's advisable to check the number of history entries/revisions in **Redmine** against the one in **MediaWiki**.
+
+
+
 h2. Resources
 
 * Redmine API documentation
