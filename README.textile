@@ -1,0 +1,139 @@
+h1. MediaWiki to Redmine Migration Tool (MRMT)
+
+
+This script parses *MediaWiki XML exports* and pushes them into *Redmine Wiki pages*.
+
+The basic logic for this is:
+
+# Parse XML file using **Nokogiri**
+# Tweak the MediaWiki markup (mainly search & replace)
+# Convert MediaWiki markup to Textile using **Pandoc** binary (via **PandocRuby**)
+# Tweak the Textile markup (mainly search & replace)
+# Push all pages including their revisions _impersonating the original author_ using **ActiveResource**
+
+
+
+h2. Thanks
+
+Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life, Creating Vitality; official site)":http://www.vita-life.com and "Planio, the Project Management Platform(Planio, the Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
+
+This script was thoroughly tested and confirmed to work for migrations from MediaWiki into "Planio Redmine":https://plan.io/de/preise/?ref=r62Ibn wikis.
+
+For certain hints during development, I'd also like to thank StackOverflow-user *mechanicalfish* and the *Planio support team*.
+
+
+
+h2. Important Notes
+
+* The script assumes that all revisions in the XML files are already in correct order. Experience shows that this typically is the case when exporting from MediaWiki.
+* Due to restrictions in the Redmine API, this script adds the _original revision timestamps_ *to the revision comment*. The revision itself will be associated with the current date (= date the migration is run).
+* MediaWiki contributor names will be converted to *lowercase Redmine user names*.
+* *Table of contents* (@{{>toc}}@) will be inserted at the top of every page.
+* If you want to import into different projects, *export one XML file per project* (see @--pagelist@ option of dumpBackup.php).
+* This script is known to work with XML exports from MediaWiki version 1.18.1.
+* The script will fail intentionally if pages to be pushed already exist in the Redmine wiki.
+** Hint: The following **curl** command poses a quick way to delete pages: @curl -i -X DELETE --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
+* You may also use **curl** to get more meaningful responses. Example:
+** @curl -i -H 'X-Redmine-Switch-User: importer' -X PUT -d content[text]="sometext" -d content[comments]="somecomment" --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
+* In case you want to purge all (!) existing wiki pages, use the following Ruby statement.
+** @pages = WikiPage.get('index').collect { |p| p['title'] }; pages.each { |p| WikiPage.delete(p) }@
+
+
+
+h2. Prerequisites
+
+# Redmine version must be *at least 2.2.0* in order to allow API access to wiki pages
+# Install the *Pandoc binary (!)* 1.12.0.2 or newer on your system.
+** See http://johnmacfarlane.net/pandoc/installing.html for details
+
+
+
+h2. Usage
+
+Follow these steps in the given order
+
+
+h3. In MediaWiki: Export XML file
+
+# Deny all edits (see "MediaWiki: $wgReadOnly":https://www.mediawiki.org/wiki/Manual:$wgReadOnly and/or "MediaWiki: Preventing Access(Restrict editing by absolutely everyone)":https://www.mediawiki.org/wiki/Manual:Preventing_access#Restrict_editing_by_absolutely_everyone).
+# Export the wiki as XML (see "WikiMedia: Export(How to export)":https://meta.wikimedia.org/wiki/Help:Export#How_to_export).
+** Suggestion: @su -m www -c "php ./maintenance/dumpBackup.php --full --pagelist=./pagelist --include-files > PATH_FOR/mediawiki-pages.xml"@
+
+
+h3. In Redmine: Prepare wiki and users
+
+# Set *upload size* higher than the size of the biggest file that you intend to upload.
+# *Rename any pages* that would clash with those to be imported.
+# Ensure that all contributors of the MediaWiki instance *exist as users* in Redmine.
+# *Authorize the users* to edit the wiki of the project in question.
+** Hint: Run the according method of this script to list all contributors mentioned in the XML file (@./list_contributors.rb PATH_TO/mediawiki.xml@)
+
+
+h3. In XML file: Clean up and rename
+
+# Search and replace all contributor names that you want to remap to certain other Redmine users.
+** VI-Example: :%s/<username>\cWikiSysop<\/username>/<username>admin<\/username>/
+** Hint: Run the aforementioned script to verify only wanted contributors remain present (@./list_contributors.rb PATH_TO/mediawiki.xml@)
+# Some auto-generated revisions in MediaWiki, like the "Main Page", might be missing a contributor. The script is hard-coded to fall back to "admin" in such cases.
+# Optionally remove any unwanted contributions entirely.
+
+
+h3. Script: push_contents.rb
+
+Use this script to push all MediaWiki revisions from the XML file to Redmine.
+
+*Syntax-Example:*
+
+pre. SCRIPT_NAME        XML_FILE                REDMINE_URL                                      ADMIN_API_KEY
+./push_contents.rb 'PATH_TO/mediawiki.xml' 'https://example.plan.io/projects/$PROJECTNAME/' 'ffff0000eeee1111dddd2222cccc3333bbbb4444'
+
+_Ensure to provide an admin API key._
+
+
+h3. Script: upload_files.rb
+
+Use this script to upload all files to Redmine.
+
+Note that each images *directory name* determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
+
+*Exampe directory hierarchy*
+
+pre. images
+├── one
+│   ├── bar1.jpg  # will be associated with wiki page named "one"
+│   ├── bar2.jpg  # will be associated with wiki page named "one"
+│   └── bar3.jpg  # will be associated with wiki page named "one"
+├── two
+│   ├── bar1.jpg  # will be associated with wiki page named "two"
+│   ├── bar2.jpg  # will be associated with wiki page named "two"
+│   └── bar3.jpg  # will be associated with wiki page named "two"
+└── foo
+    ├── bar1.jpg  # will be associated with wiki page named "foo"
+    ├── bar2.jpg  # will be associated with wiki page named "foo"
+    └── bar3.jpg  # will be associated with wiki page named "foo"
+
+
+*Syntax-Example:* 
+
+pre. SCRIPT_NAME       IMAGE_DIRECTORY             REDMINE_URL               PROJECT_NAME  API_KEY
+./upload_files.rb '~/export_to_planio/images' 'https://example.plan.io' 'test'        'ffff0000eeee1111dddd2222cccc3333bbbb4444'
+
+_Ensure to provide an API key with sufficient priviledges._
+
+
+  
+h2. Resources
+
+* Redmine API documentation
+** "Wiki pages":http://www.redmine.org/projects/redmine/wiki/Rest_WikiPages
+** "Using the REST API with Ruby":http://www.redmine.org/projects/redmine/wiki/Rest_api_with_ruby
+*** Note that, as of 2013-09-25, the outlined example class declaration is incomplete.
+* http://apidock.com/rails/ActiveResource/Base
+* https://github.com/rails/activeresource#active-resource-
+* https://github.com/edavis10/redmine/blob/master/config/routes.rb
+
+
+
+h2. License
+
+The **MediaWiki to Redmine Migration Tool** is released under the "MIT License":http://www.opensource.org/licenses/MIT.
