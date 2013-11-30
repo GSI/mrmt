@@ -15,7 +15,7 @@ The basic logic for this is:
 
 h2. Thanks
 
-Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life - Creating Vitality; official site)":http://www.vita-life.com and "Planio - The Project Management Platform(Planio, the Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
+Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life - Creating Vitality; official site)":http://www.vita-life.com and "Planio, the Redmine-based Project Management Platform(Planio - The Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
 
 This script was thoroughly tested and confirmed to work for migrations from **MediaWiki** to "**Planio Redmine**":https://plan.io/de/preise/?ref=r62Ibn wikis.
 
@@ -100,7 +100,7 @@ h3. Script: upload_files.rb
 
 Use this script to upload all files to Redmine.
 
-Note that each image's *directory name* determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
+Note that the *directory name* of each image determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
 
 h4. Example directory hierarchy
 
