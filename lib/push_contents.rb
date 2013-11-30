@@ -104,6 +104,18 @@ def delete_wiki_page(title)
   WikiPage.delete(title)
 end
 
+def handle_forbidden_view_access(fa, delete_page = false)
+  p "The following exception typically means that the impersonated user ('#{WikiPage.headers['X-Redmine-Switch-User']}') is missing privileges to read the wiki in question. Verify that the user has the 'View wiki' permission set."
+  delete_wiki_page(page_title) if delete_page
+  raise fa
+end
+
+def handle_forbidden_write_access(fa)
+  p "The following exception typically means that the impersonated user ('#{WikiPage.headers['X-Redmine-Switch-User']}') is missing privileges to write to the wiki in question. Verify that the user has the 'Edit wiki pages' permission set."
+  delete_wiki_page(page_title)
+  raise fa
+end
+
 def push_all_revisions_to_redmine
   doc = get_xml_file_handle(SOURCE_XML)
 
@@ -116,6 +128,9 @@ def push_all_revisions_to_redmine
     begin
       # raise "A page titled '#{page_title}' already exists." if WikiPage.find(page_title)
       p "WARNING: A page titled '#{page_title}' already exists. Skipping." if WikiPage.find(page_title)
+
+    rescue ActiveResource::ForbiddenAccess => fa
+			handle_forbidden_view_access(fa)
 
     rescue ActiveResource::ResourceNotFound
       previous_version = 0
@@ -146,15 +161,19 @@ def push_all_revisions_to_redmine
           # ResourceConflict exception on the _next_ update that actually _does_ update the text.
           # TODO file bug report
           # As a workaround, the last version is fetched in such cases.
-          p "Caught #{rc.class}"
-          page.version = previous_version = (WikiPage.find(page_title)).version.to_i
+          p "Handling #{rc.class} ..."
+
+					begin
+            page.version = previous_version = (WikiPage.find(page_title)).version.to_i
+					rescue ActiveResource::ForbiddenAccess => fa
+            handle_forbidden_view_access(fa, true)
+					end
+
           p "Reset version number to #{page.version}. Retrying ..."
           page.save
 
         rescue ActiveResource::ForbiddenAccess => fa
-          p "The following exception typically means that the impersonated user ('#{username}') is missing privileges to access the wiki in question."
-          delete_wiki_page(page_title)
-          raise fa
+					handle_forbidden_write_access(fa)
 
         rescue ActiveResource::ClientError => ce
           p "The following exception typically means that the impersonated user ('#{username}') is missing in Redmine or that the desired page title contains unsupported symbols."
