@@ -15,27 +15,27 @@ The basic logic for this is:
 
 h2. Thanks
 
-Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life, Creating Vitality; official site)":http://www.vita-life.com and "Planio, the Project Management Platform(Planio, the Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
+Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life - Creating Vitality; official site)":http://www.vita-life.com and "Planio - The Project Management Platform(Planio, the Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
 
-This script was thoroughly tested and confirmed to work for migrations from MediaWiki into "Planio Redmine":https://plan.io/de/preise/?ref=r62Ibn wikis.
+This script was thoroughly tested and confirmed to work for migrations from **MediaWiki** to "**Planio Redmine**":https://plan.io/de/preise/?ref=r62Ibn wikis.
 
-For certain hints during development, I'd also like to thank StackOverflow-user *mechanicalfish* and the *Planio support team*.
+I'd also like to thank the **Planio Support Team** and Stack Overflow user **mechanicalfish** for certain hints during development.
 
 
 
 h2. Important Notes
 
-* The script assumes that all revisions in the XML files are already in correct order. Experience shows that this typically is the case when exporting from MediaWiki.
-* Due to restrictions in the Redmine API, this script adds the _original revision timestamps_ *to the revision comment*. The revision itself will be associated with the current date (= date the migration is run).
+* The script assumes that all *revisions in the XML files are already in correct order*. Experience shows that this typically is the case when exporting from MediaWiki.
+* Due to restrictions in the Redmine API, this script adds the _original revision timestamp_ *to the revision comment*. The revision itself will be associated with the current date (= date the migration is run).
 * MediaWiki contributor names will be converted to *lowercase Redmine user names*.
 * *Table of contents* (@{{>toc}}@) will be inserted at the top of every page.
-* If you want to import into different projects, *export one XML file per project* (see @--pagelist@ option of dumpBackup.php).
-* This script is known to work with XML exports from MediaWiki version 1.18.1.
-* The script will fail intentionally if pages to be pushed already exist in the Redmine wiki.
-** Hint: The following **curl** command poses a quick way to delete pages: @curl -i -X DELETE --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
-* You may also use **curl** to get more meaningful responses. Example:
+* If you want to import into different projects, *export one XML file per project* (see @--pagelist@ option of MediaWiki's __dumpBackup.php__).
+* This script is known to work with XML exports from *MediaWiki version 1.18.1*.
+* The script will *fail intentionally if pages to be pushed already exist* in the Redmine wiki.
+** Hint: The following **curl** command poses a *quick way to delete pages*: @curl -i -X DELETE --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
+* You may also use **curl** to get *more meaningful responses*. Example:
 ** @curl -i -H 'X-Redmine-Switch-User: importer' -X PUT -d content[text]="sometext" -d content[comments]="somecomment" --user "$ADMIN_API_KEY_HERE:$PASSWORD_IS_IRRELEVANT" https://example.plan.io/projects/$PROJECTNAME/wiki/$DESIRED_PAGENAME.xml@
-* In case you want to purge all (!) existing wiki pages, use the following Ruby statement.
+* In case you want to *purge all (!)* existing wiki pages, use the following Ruby statement.
 ** @pages = WikiPage.get('index').collect { |p| p['title'] }; pages.each { |p| WikiPage.delete(p) }@
 
 
@@ -50,14 +50,14 @@ h2. Prerequisites
 
 h2. Usage
 
-Follow these steps in the given order
+Follow these steps in the given order.
 
 
 h3. In MediaWiki: Export XML file
 
-# Deny all edits (see "MediaWiki: $wgReadOnly":https://www.mediawiki.org/wiki/Manual:$wgReadOnly and/or "MediaWiki: Preventing Access(Restrict editing by absolutely everyone)":https://www.mediawiki.org/wiki/Manual:Preventing_access#Restrict_editing_by_absolutely_everyone).
+# Deny all edits (see "MediaWiki: $wgReadOnly(Disallow editing)":https://www.mediawiki.org/wiki/Manual:$wgReadOnly and/or "MediaWiki: Preventing Access(Restrict editing by absolutely everyone)":https://www.mediawiki.org/wiki/Manual:Preventing_access#Restrict_editing_by_absolutely_everyone).
 # Export the wiki as XML (see "WikiMedia: Export(How to export)":https://meta.wikimedia.org/wiki/Help:Export#How_to_export).
-** Suggestion: @su -m www -c "php ./maintenance/dumpBackup.php --full --pagelist=./pagelist --include-files > PATH_FOR/mediawiki-pages.xml"@
+** *Suggestion:* @su -m www -c "php ./maintenance/dumpBackup.php --full --pagelist=./pagelist --include-files > PATH_FOR/mediawiki-pages.xml"@
 
 
 h3. In Redmine: Prepare wiki and users
@@ -66,37 +66,38 @@ h3. In Redmine: Prepare wiki and users
 # *Rename any pages* that would clash with those to be imported.
 # Ensure that all contributors of the MediaWiki instance *exist as users* in Redmine.
 # *Authorize the users* to edit the wiki of the project in question.
-** Hint: Run the according method of this script to list all contributors mentioned in the XML file (@./list_contributors.rb PATH_TO/mediawiki.xml@)
+** *Hint:* Run the according method of this script to list all contributors mentioned in the XML file (@./list_contributors.rb PATH_TO/mediawiki.xml@)
 
 
-h3. In XML file: Clean up and rename
+h3. In XML file: Clean up and remap users
 
-# Search and replace all contributor names that you want to remap to certain other Redmine users.
-** VI-Example: :%s/<username>\cWikiSysop<\/username>/<username>admin<\/username>/
-** Hint: Run the aforementioned script to verify only wanted contributors remain present (@./list_contributors.rb PATH_TO/mediawiki.xml@)
-# Some auto-generated revisions in MediaWiki, like the "Main Page", might be missing a contributor. The script is hard-coded to fall back to "admin" in such cases.
+# *Search and replace any contributor names* that you want to remap to certain other Redmine users.
+** *VI-Example:* @:%s/<username>\cWikiSysop<\/username>/<username>admin<\/username>/@
+** *Hint:* Run the aforementioned script to verify only wanted contributors remain present (@./list_contributors.rb PATH_TO/mediawiki.xml@)
 # Optionally remove any unwanted contributions entirely.
+
+Note that some auto-generated revisions in MediaWiki, like the "Main Page", might be missing a contributor. The script is hard-coded to handle such cases by automatically assigning them to *"admin"*.
 
 
 h3. Script: push_contents.rb
 
 Use this script to push all MediaWiki revisions from the XML file to Redmine.
 
-*Syntax-Example:*
+h4. Syntax-Example
 
-pre. SCRIPT_NAME        XML_FILE                REDMINE_URL                                      ADMIN_API_KEY
+pre. SCRIPT_NAME         XML_FILE                REDMINE_URL                                      ADMIN_API_KEY
 ./push_contents.rb 'PATH_TO/mediawiki.xml' 'https://example.plan.io/projects/$PROJECTNAME/' 'ffff0000eeee1111dddd2222cccc3333bbbb4444'
 
-_Ensure to provide an admin API key._
+_*Important:* Ensure to provide the API key of an admin._
 
 
 h3. Script: upload_files.rb
 
 Use this script to upload all files to Redmine.
 
-Note that each images *directory name* determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
+Note that each image's *directory name* determines with which Redmine wiki page the uploaded file will be associated. Organize accordingly.
 
-*Exampe directory hierarchy*
+h4. Exampe directory hierarchy
 
 pre. images
 ├── one
@@ -113,12 +114,12 @@ pre. images
     └── bar3.jpg  # will be associated with wiki page named "foo"
 
 
-*Syntax-Example:* 
+h4. Syntax-Example
 
-pre. SCRIPT_NAME       IMAGE_DIRECTORY             REDMINE_URL               PROJECT_NAME  API_KEY
+pre. SCRIPT_NAME        IMAGE_DIRECTORY             REDMINE_URL               PROJECT_NAME  API_KEY
 ./upload_files.rb '~/export_to_planio/images' 'https://example.plan.io' 'test'        'ffff0000eeee1111dddd2222cccc3333bbbb4444'
 
-_Ensure to provide an API key with sufficient priviledges._
+_*Important:* Ensure to provide an API key with sufficient privileges._
 
 
   
