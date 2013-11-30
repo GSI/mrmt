@@ -15,9 +15,9 @@ The basic logic for this is:
 
 h2. Thanks
 
-Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life - Creating Vitality; official site)":http://www.vita-life.com and "Planio, the Redmine-based Project Management Platform(Planio - The Project Management Platform; official site)":https://plan.io/?ref=r62Ibn.
+Initial implementation is sponsored by "vita-life Magnetic-Resonance-Systems(vita-life - Creating Vitality; official site)":http://www.vita-life.com and **Planio, the Redmine-based Project Management Platform** ("Affiliate-Link(Planio - The Project Management Platform; official site)":https://plan.io/?ref=r62Ibn).
 
-This script was thoroughly tested and confirmed to work for migrations from **MediaWiki** to "**Planio Redmine**":https://plan.io/de/preise/?ref=r62Ibn wikis.
+This script was thoroughly tested and confirmed to work for migrations from **MediaWiki** to **Planio Redmine** wikis.
 
 I'd also like to thank the **Planio Support Team** and Stack Overflow user **mechanicalfish** for certain hints during development.
 
